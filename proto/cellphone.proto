@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./pb";
+
+package pb;
+
+// CPU信息
+message CPU {
+  // 生产厂商
+  string manufacturer = 1;
+  // 核心数量
+  int32 cores = 2;
+  // 最小频率
+  double min_ghz = 3;
+  // 最大频率
+  double max_ghz = 4;
+}
+
+// 电池信息
+message Battery {
+  // 电池容量
+  int32 capacity = 1;
+}
+
+// 内存信息
+message RAM {
+  // 内存大小
+  int32 value = 1;
+  // 内存大小单位
+  Unit unit = 2;
+  // 内存DDR类型
+  DDRType ddr_type = 3;
+}
+
+// 内存DDR类型
+enum DDRType {
+  DDR3 = 0;
+  DDR4 = 1;
+  DDR5 = 2;
+}
+
+// 存储容量单位
+enum Unit {
+  UnitMB = 0;
+  UnitGB = 1;
+  UnitTB = 2;
+}
+
+// 硬盘类型
+enum StorageType {
+  // 固态硬盘
+  SSD = 0;
+  // 机械硬盘
+  HDD = 2;
+}
+
+// 硬盘信息
+message Storage {
+  // 硬盘大小
+  int32 value = 1;
+  // 存储单位
+  Unit unit = 2;
+  // 硬盘类型
+  StorageType storage_type = 3;
+}
+
+// 操作系统
+message OperatingSystem {
+  // 操作系统名字
+  string name = 1;
+  // 操作系统版本
+  string version = 2;
+}
+
+// GPU
+message GPU {
+  // 生产厂商
+  string manufacturer = 1;
+  // 显存大小
+  int32 memory = 2;
+  // 显存单位
+  Unit memory_unit = 3;
+  // 最小频率
+  double min_ghz = 4;
+  // 最大频率
+  double max_ghz = 5;
+}
+
+// 屏幕
+message Screen {
+  double size = 1;
+  string resolution = 2;
+}
+
+// 相机
+message Camera {
+  string brand = 1;
+  string spec = 2;
+}
+
+// 代表一台手机
+message Cellphone {
+  string id = 1;
+  string brand = 2;
+  CPU cpu = 4;
+  RAM ram = 5;
+  GPU gpu = 6;
+  Battery battery = 7;
+  Storage storage = 8;
+  OperatingSystem operating_system = 9;
+  Screen screen = 10;
+  Camera camera = 11;
+  google.protobuf.Timestamp created_at = 15;
+}

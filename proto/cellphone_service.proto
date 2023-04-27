@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+import "cellphone.proto";
+
+option go_package = "./pb";
+
+package pb;
+
+// 添加一台手机信息的请求
+message CreateCellphoneRequest { Cellphone cellphone = 1; }
+
+// 添加一台手机的响应
+message CreateCellphoneResponse { string id = 1; }
+
+// 查找手机的查询条件
+message FilterCondition {
+  int32 min_cpu_core = 1;
+  int32 min_battery_capacity = 2;
+  int32 min_ram_size = 3;
+  int32 min_storage_size = 4;
+  repeated string brands = 5;
+}
+
+// 上传封面图片的请求
+message UploadCellphoneCoverRequest {
+  oneof data {
+    CoverMetaInfo meta = 1;
+    bytes block = 2;
+  }
+}
+
+// 封面图片元数据
+message CoverMetaInfo {
+  string id = 1;
+  uint32 size = 2;
+  string image_type = 3;
+}
+
+// 上传封面图片后得到的响应
+message UploadCellphoneCoverResponse {
+  string id = 1;
+  uint32 size = 2;
+}
+
+service CellphoneService {
+  // Unary RPC
+  // 添加一条手机信息
+  rpc CreateCellphone(CreateCellphoneRequest) returns (CreateCellphoneResponse);
+
+  // Server streaming RPC
+  // 查找符合条件的手机
+  rpc SearchCellphone(FilterCondition) returns (stream Cellphone);
+
+  // Client streaming RPC
+  // 客户端上传字节流数据（上传手机封面图片）
+  rpc UploadCellphoneCover(stream UploadCellphoneCoverRequest)
+      returns (UploadCellphoneCoverResponse);
+}
