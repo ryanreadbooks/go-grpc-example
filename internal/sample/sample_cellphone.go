@@ -30,14 +30,14 @@ func NewCPU() *pb.CPU {
 	return &pb.CPU{
 		Manufacturer: randomManufacturer(),
 		Cores:        randomPowerOfTwo(8),
-		MinGhz:       randomFloat64(1.1, 2.5),
-		MaxGhz:       randomFloat64(2.5, 5.5),
+		MinGhz:       RandomFloat64(1.1, 2.5),
+		MaxGhz:       RandomFloat64(2.5, 5.5),
 	}
 }
 
 func NewBattery() *pb.Battery {
 	return &pb.Battery{
-		Capacity: randomInt32(2000, 6000),
+		Capacity: RandomInt32(2000, 6000),
 	}
 }
 
@@ -51,7 +51,7 @@ func NewRAM() *pb.RAM {
 
 func NewStorage() *pb.Storage {
 	return &pb.Storage{
-		Value:       randomInt32(100, 8092),
+		Value:       RandomInt32(100, 8092),
 		Unit:        pb.Unit_UnitGB,
 		StorageType: randomStorageType(),
 	}
@@ -67,10 +67,10 @@ func NewOperatingSystem() *pb.OperatingSystem {
 func NewGPU() *pb.GPU {
 	return &pb.GPU{
 		Manufacturer: randomManufacturer(),
-		Memory:       randomInt32(2, 25),
+		Memory:       RandomInt32(2, 25),
 		MemoryUnit:   pb.Unit_UnitGB,
-		MinGhz:       randomFloat64(1.0, 3.0),
-		MaxGhz:       randomFloat64(3.0, 6.0),
+		MinGhz:       RandomFloat64(1.0, 3.0),
+		MaxGhz:       RandomFloat64(3.0, 6.0),
 	}
 }
 

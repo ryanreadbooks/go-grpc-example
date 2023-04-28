@@ -31,6 +31,9 @@ type CellphoneServiceClient interface {
 	// Client streaming RPC
 	// 客户端上传字节流数据（上传手机封面图片）
 	UploadCellphoneCover(ctx context.Context, opts ...grpc.CallOption) (CellphoneService_UploadCellphoneCoverClient, error)
+	// Bidirectional stream RPC
+	// 客户端购买手机，服务端返回购买手机的平均价格
+	BuyCellphone(ctx context.Context, opts ...grpc.CallOption) (CellphoneService_BuyCellphoneClient, error)
 }
 
 type cellphoneServiceClient struct {
@@ -116,6 +119,37 @@ func (x *cellphoneServiceUploadCellphoneCoverClient) CloseAndRecv() (*UploadCell
 	return m, nil
 }
 
+func (c *cellphoneServiceClient) BuyCellphone(ctx context.Context, opts ...grpc.CallOption) (CellphoneService_BuyCellphoneClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CellphoneService_ServiceDesc.Streams[2], "/pb.CellphoneService/BuyCellphone", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &cellphoneServiceBuyCellphoneClient{stream}
+	return x, nil
+}
+
+type CellphoneService_BuyCellphoneClient interface {
+	Send(*BuyCellphoneRequest) error
+	Recv() (*BuyCellphoneResponse, error)
+	grpc.ClientStream
+}
+
+type cellphoneServiceBuyCellphoneClient struct {
+	grpc.ClientStream
+}
+
+func (x *cellphoneServiceBuyCellphoneClient) Send(m *BuyCellphoneRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *cellphoneServiceBuyCellphoneClient) Recv() (*BuyCellphoneResponse, error) {
+	m := new(BuyCellphoneResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // CellphoneServiceServer is the server API for CellphoneService service.
 // All implementations must embed UnimplementedCellphoneServiceServer
 // for forward compatibility
@@ -129,6 +163,9 @@ type CellphoneServiceServer interface {
 	// Client streaming RPC
 	// 客户端上传字节流数据（上传手机封面图片）
 	UploadCellphoneCover(CellphoneService_UploadCellphoneCoverServer) error
+	// Bidirectional stream RPC
+	// 客户端购买手机，服务端返回购买手机的平均价格
+	BuyCellphone(CellphoneService_BuyCellphoneServer) error
 	mustEmbedUnimplementedCellphoneServiceServer()
 }
 
@@ -144,6 +181,9 @@ func (UnimplementedCellphoneServiceServer) SearchCellphone(*FilterCondition, Cel
 }
 func (UnimplementedCellphoneServiceServer) UploadCellphoneCover(CellphoneService_UploadCellphoneCoverServer) error {
 	return status.Errorf(codes.Unimplemented, "method UploadCellphoneCover not implemented")
+}
+func (UnimplementedCellphoneServiceServer) BuyCellphone(CellphoneService_BuyCellphoneServer) error {
+	return status.Errorf(codes.Unimplemented, "method BuyCellphone not implemented")
 }
 func (UnimplementedCellphoneServiceServer) mustEmbedUnimplementedCellphoneServiceServer() {}
 
@@ -223,6 +263,32 @@ func (x *cellphoneServiceUploadCellphoneCoverServer) Recv() (*UploadCellphoneCov
 	return m, nil
 }
 
+func _CellphoneService_BuyCellphone_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CellphoneServiceServer).BuyCellphone(&cellphoneServiceBuyCellphoneServer{stream})
+}
+
+type CellphoneService_BuyCellphoneServer interface {
+	Send(*BuyCellphoneResponse) error
+	Recv() (*BuyCellphoneRequest, error)
+	grpc.ServerStream
+}
+
+type cellphoneServiceBuyCellphoneServer struct {
+	grpc.ServerStream
+}
+
+func (x *cellphoneServiceBuyCellphoneServer) Send(m *BuyCellphoneResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *cellphoneServiceBuyCellphoneServer) Recv() (*BuyCellphoneRequest, error) {
+	m := new(BuyCellphoneRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // CellphoneService_ServiceDesc is the grpc.ServiceDesc for CellphoneService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -244,6 +310,12 @@ var CellphoneService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "UploadCellphoneCover",
 			Handler:       _CellphoneService_UploadCellphoneCover_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "BuyCellphone",
+			Handler:       _CellphoneService_BuyCellphone_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},

@@ -3,6 +3,8 @@ package service_test
 import (
 	"fmt"
 	"io"
+	"log"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -36,10 +38,10 @@ func runTestCellphoneServiceServer(t *testing.T) (*grpc.Server, net.Listener) {
 }
 
 // 创建测试过程中使用的client
-func makeTestCellphoneServiceClient(t *testing.T, addr string) pb.CellphoneServiceClient {
+func makeTestCellphoneServiceClient(t *testing.T, addr string) (pb.CellphoneServiceClient, *grpc.ClientConn) {
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.Nil(t, err)
-	return pb.NewCellphoneServiceClient(conn)
+	return pb.NewCellphoneServiceClient(conn), conn
 }
 
 // 测试Create服务
@@ -51,7 +53,8 @@ func TestCellphoneServiceImplCreateCellphone(t *testing.T) {
 	go server.Serve(listener)
 	defer server.GracefulStop()
 
-	client := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	client, conn := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	defer conn.Close()
 
 	name1 := "client-call-create-cellphone"
 
@@ -133,7 +136,8 @@ func TestCellphoneServiceImplWithContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
-	client := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	client, conn := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	defer conn.Close()
 
 	requset := pb.CreateCellphoneRequest{Cellphone: sample.NewCellphone()}
 
@@ -149,7 +153,8 @@ func TestCellphoneServiceImplSearchCellphone(t *testing.T) {
 	go server.Serve(listener)
 	defer server.GracefulStop()
 
-	client := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	client, conn := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	defer conn.Close()
 
 	cellphones := []*pb.Cellphone{
 		{
@@ -310,7 +315,8 @@ func TestCellphoneServiceImplUploadCellphoneCover(t *testing.T) {
 	go server.Serve(listener)
 	defer server.GracefulStop()
 
-	client := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	client, conn := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	defer conn.Close()
 
 	testCases := []*struct {
 		Name      string
@@ -390,7 +396,7 @@ func TestCellphoneServiceImplUploadCellphoneCover(t *testing.T) {
 			// 然后开始发图片的字节流内容
 			var buf []byte = make([]byte, 4096)
 
-			allErrorNil := true
+			allErrorNil := true // 记录是否发生错误，有些测试用例是期待发生错误的
 
 			for {
 				// 不断从文件中读4096 bytes数据
@@ -420,6 +426,87 @@ func TestCellphoneServiceImplUploadCellphoneCover(t *testing.T) {
 				}
 			}
 			require.Equal(tt, tc.ErrNil, allErrorNil)
+		})
+	}
+}
+
+func TestCellphoneServiceImplBuyCellphone(t *testing.T) {
+	t.Parallel()
+
+	// 初始化测试的服务端和客户端
+	server, listener := runTestCellphoneServiceServer(t)
+	go server.Serve(listener)
+	defer server.GracefulStop()
+
+	client, conn := makeTestCellphoneServiceClient(t, listener.Addr().String())
+	defer conn.Close()
+
+	// 创建10条手机信息
+	var cellphoneIds []string = make([]string, 0, 10)
+	for i := 0; i < 10; i++ {
+		res, err := client.CreateCellphone(context.Background(), &pb.CreateCellphoneRequest{Cellphone: sample.NewCellphone()})
+		require.Nil(t, err)
+		cellphoneIds = append(cellphoneIds, res.Id)
+	}
+
+	// 测试用例
+	testCases := []*struct {
+		Name string
+		Num  int
+	}{
+		{Name: "case1", Num: 3},
+		{Name: "case2", Num: 5},
+		{Name: "case3", Num: 7},
+		{Name: "case4", Num: 6},
+		{Name: "case5", Num: 10},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// 从10台手机中随机选出tc.Num台
+			var selectedIds = make([]string, 0, tc.Num)
+			var prices = make([]float64, 0, tc.Num)
+			for j := 0; j < tc.Num; j++ {
+				idx := rand.Intn(len(cellphoneIds))
+				selectedIds = append(selectedIds, cellphoneIds[idx])
+				// 为这几台手机随机生成价格
+				price := sample.RandomFloat64(2000, 6999)
+				prices = append(prices, price)
+			}
+
+			require.EqualValues(t, len(selectedIds), len(prices))
+			require.EqualValues(t, len(prices), tc.Num)
+
+			// 开始和server通信
+			// 专门开一个goroutine来接收服务端的响应数据
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			stream, err := client.BuyCellphone(ctx)
+			require.Nil(t, err)
+
+			waitc := make(chan struct{}) // 需要一个channel来通知退出
+			go func() {
+				for {
+					res, err := stream.Recv()
+					if err == io.EOF {
+						// 读到EOF则表明数据读完了
+						close(waitc)
+						break
+					}
+					require.Nil(t, err)
+					log.Printf("avg@%s = %f\n", res.Id, res.Avg)
+				}
+			}()
+
+			for k := 0; k < tc.Num; k++ {
+				err = stream.Send(&pb.BuyCellphoneRequest{
+					Id:    selectedIds[k],
+					Price: prices[k],
+				})
+				require.Nil(t, err)
+			}
+			stream.CloseSend()
+			<-waitc // 等待退出
 		})
 	}
 }

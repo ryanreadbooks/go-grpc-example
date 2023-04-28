@@ -22,7 +22,7 @@ type InMemoryCellphoneSaver struct {
 
 func NewInMemoryCellphoneSaver() *InMemoryCellphoneSaver {
 	return &InMemoryCellphoneSaver{
-		storage: make(map[string]*pb.Cellphone, 0),
+		storage: make(map[string]*pb.Cellphone),
 	}
 }
 
@@ -84,6 +84,7 @@ func (s *InMemoryCellphoneSaver) Search(condition *pb.FilterCondition) []*pb.Cel
 	return satisfiedCellphone
 }
 
+// 检查cellphone是否符合条件condition
 func conditionSatisfied(condition *pb.FilterCondition, cellphone *pb.Cellphone) bool {
 	if condition.MinCpuCore > cellphone.Cpu.Cores {
 		return false

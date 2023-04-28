@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+package pb;
+
+message CustomRequest { string id = 1; }
+
+message StringList { repeated string values = 1; }
+
+message CustomResponse {
+  string id = 1;
+  map<string, StringList> metadata = 2;
+}
+
+service CustomService {
+  rpc MetadataCarryTest(CustomRequest) returns (CustomResponse);
+}

@@ -38,7 +38,7 @@ func randomCameraSpec() string {
 	return randStringFromSlice(cameraSpecs)
 }
 
-func randomFloat64(min, max float64) float64 {
+func RandomFloat64(min, max float64) float64 {
 	f := rand.Float64()
 	return f*(max-min) + min
 }
@@ -48,7 +48,7 @@ func randomScreenResolution() string {
 }
 
 func randomScreenSize() float64 {
-	return randomFloat64(4.4, 7.0)
+	return RandomFloat64(4.4, 7.0)
 }
 
 func randomManufacturer() string {
@@ -59,7 +59,7 @@ func randomPowerOfTwo(max int) int32 {
 	return (int32)(math.Pow(2, float64(rand.Intn(max+1))))
 }
 
-func randomInt32(min, max int32) int32 {
+func RandomInt32(min, max int32) int32 {
 	return rand.Int31n(max-min) + min
 }
 

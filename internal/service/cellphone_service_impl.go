@@ -26,13 +26,16 @@ const (
 
 // 实现pb生成的service server接口
 type cellphoneServiceServer struct {
-	pb.UnimplementedCellphoneServiceServer // 必须嵌入这个由protoc生成的结构体
-	saver                                  CellphoneSaver
+	// 必须嵌入这个由protoc生成的结构体
+	pb.UnimplementedCellphoneServiceServer
+	saver  CellphoneSaver
+	orders OrderSaver
 }
 
 func NewCellphoneServiceServer() pb.CellphoneServiceServer {
 	return &cellphoneServiceServer{
-		saver: NewInMemoryCellphoneSaver(),
+		saver:  NewInMemoryCellphoneSaver(),
+		orders: NewInMemoryOrderSaver(),
 	}
 }
 
@@ -131,15 +134,13 @@ func (c *cellphoneServiceServer) UploadCellphoneCover(stream pb.CellphoneService
 	imgType := request.GetMeta().ImageType
 
 	// uuid不合法
-	if err := CheckUUIDValid(cellphoneId); err != nil {
-		log.Printf("cellphone with invalid uuid: %s\n", cellphoneId)
-		return status.Errorf(codes.InvalidArgument, err.Error())
+	if err := c.uuidCheck(cellphoneId); err != nil {
+		return err
 	}
 
 	// 指定的cellphone id不存在
-	if !c.saver.Exists(cellphoneId) {
-		log.Printf("cellphone with id: %s not found\n", cellphoneId)
-		return status.Errorf(codes.NotFound, fmt.Sprintf("cellphone with %s not found", cellphoneId))
+	if err := c.cellphoneIdCheck(cellphoneId); err != nil {
+		return err
 	}
 
 	// 文件大小太大
@@ -183,4 +184,69 @@ func (c *cellphoneServiceServer) UploadCellphoneCover(stream pb.CellphoneService
 		totalSize += n
 		log.Printf("written %d bytes into %s\n", n, imgFileName)
 	}
+}
+
+// 接口实现：购买手机的接口
+// Bidirectional RPC
+func (c *cellphoneServiceServer) BuyCellphone(stream pb.CellphoneService_BuyCellphoneServer) error {
+	// 使用stream来收发数据
+	for {
+		if err := CheckContext(stream.Context()); err != nil {
+			return err
+		}
+
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Printf("stream closed")
+			break
+		}
+		if err != nil {
+			return err
+		}
+		cellphoneId := req.GetId()
+		price := req.GetPrice()
+
+		// uuid不合法
+		if err := c.uuidCheck(cellphoneId); err != nil {
+			return err
+		}
+
+		// 指定的cellphone id不存在
+		if err := c.cellphoneIdCheck(cellphoneId); err != nil {
+			return err
+		}
+
+		err = c.orders.Save(cellphoneId, price)
+		if err != nil {
+			return status.Errorf(codes.Internal, "can not save order for %s: %v\n", cellphoneId, err)
+		}
+
+		// 发送响应
+		orders := c.orders.Get(cellphoneId)
+
+		err = stream.Send(&pb.BuyCellphoneResponse{
+			Id:  cellphoneId,
+			Avg: orders.Total / float64(orders.Count),
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *cellphoneServiceServer) uuidCheck(cellphoneId string) error {
+	if err := CheckUUIDValid(cellphoneId); err != nil {
+		log.Printf("cellphone with invalid uuid: %s\n", cellphoneId)
+		return status.Errorf(codes.InvalidArgument, err.Error())
+	}
+	return nil
+}
+
+func (c *cellphoneServiceServer) cellphoneIdCheck(cellphoneId string) error {
+	if !c.saver.Exists(cellphoneId) {
+		log.Printf("cellphone with id: %s not found\n", cellphoneId)
+		return status.Errorf(codes.NotFound, fmt.Sprintf("cellphone with %s not found", cellphoneId))
+	}
+	return nil
 }

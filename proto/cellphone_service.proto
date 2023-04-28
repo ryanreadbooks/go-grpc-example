@@ -42,6 +42,16 @@ message UploadCellphoneCoverResponse {
   uint32 size = 2;
 }
 
+message BuyCellphoneRequest {
+  string id = 1;
+  double price = 2;
+}
+
+message BuyCellphoneResponse {
+  string id = 1;
+  double avg = 2;
+}
+
 service CellphoneService {
   // Unary RPC
   // 添加一条手机信息
@@ -55,4 +65,8 @@ service CellphoneService {
   // 客户端上传字节流数据（上传手机封面图片）
   rpc UploadCellphoneCover(stream UploadCellphoneCoverRequest)
       returns (UploadCellphoneCoverResponse);
+
+  // Bidirectional stream RPC
+  // 客户端购买手机，服务端返回购买手机的平均价格
+  rpc BuyCellphone(stream BuyCellphoneRequest) returns (stream BuyCellphoneResponse);
 }
