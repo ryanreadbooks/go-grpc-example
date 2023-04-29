@@ -1,6 +1,6 @@
 # go-grpc-example
 
-演示Golang中基础的gRPC使用，包含基础了gRPC使用场景，包括四种RPC方式、metadata的使用等。
+演示Golang中基础的gRPC使用，包含基础的gRPC使用场景，包括四种RPC方式、metadata的使用等。
 
 参考文档：[PROTOCOL-HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)、[Core-Concept](https://grpc.io/docs/what-is-grpc/core-concepts/)、[grpc-go文档](https://pkg.go.dev/google.golang.org/grpc#section-readme)、[Doc](https://github.com/grpc/grpc/tree/master/doc)
 
@@ -50,7 +50,7 @@ rpc UploadCellphoneCover(stream UploadCellphoneCoverRequest) returns (UploadCell
 
 **注意事项:**
 
-1. 在goland中的gRPC实现中，客户端调用 `Send`方法发送数据的时候，并不会阻塞等待服务端调用Recv？（从测试来看好像这样)。服务端有可能随时通过返回错误来关闭流，所以客户端每次 `Send`或者最后 `CloseAndRecv`之后都要判断错误。
+1. 在golang中的gRPC实现中，客户端调用 `Send`方法发送数据的时候，并不会阻塞等待服务端调用Recv？（从测试来看好像这样)。服务端有可能随时通过返回错误来关闭流，所以客户端每次 `Send`或者最后 `CloseAndRecv`之后都要判断错误。
 2. 如果客户端在 `Send`过程中发生了在客户端这一侧的错误，那么直接返回对应的 `error`；但是如果是服务端返回了错误，那么在客户端再使用 `Send`的时候，就会笼统地返回 `io.EOF`错误，更为具体的错误需要在客户端侧调用 `RecvMsg(nil)`来获得。
 
 ### [Bidirectional streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
@@ -65,8 +65,8 @@ rpc BuyCellphone(stream BuyCellphoneRequest) returns (stream BuyCellphoneRespons
 
 **注意事项：**
 
-1. 当客户端发送完所有的请求数据之后，调用`CloseSend`方法关闭写端。
-2. 服务端通过`Recv`不断接收请求，使用`Send`发送响应。
+1. 当客户端发送完所有的请求数据之后，调用 `CloseSend`方法关闭写端。
+2. 服务端通过 `Recv`不断接收请求，使用 `Send`发送响应。
 
 ## gRPC的响应状态使用
 
@@ -91,7 +91,7 @@ gRPC定义了一系列内置的错误码，可以在codes中设置，常见的�
 
 使用 `context.WithCancel`
 
-## gPRC中时间类型的使用
+## gRPC中时间类型的使用
 
 在proto文件中 `import "google/protobuf/timestamp.proto"`，这个是protobuf的内置message类型，用来表示时间戳。
 
@@ -119,9 +119,9 @@ gRPC中的metadata是可以在传输携带的一组键值对数据，键值对�
 
 ### response trailer/header
 
-服务端响应的时候，除了主体信息外，还可以额外携带header信息和trailer信息，即gRPC完成响应后额外传输的一组数据，也是键值对的形式。
+服务端响应的时候，除了主体信息外，还可以额外携带header信息和trailer信息，即gRPC除主体信息外额外传输的一组数据，也是键值对的形式。
 
 Unary RPC和Streaming RPC获取响应的trailer和header不一样。
 
 * Unary RPC获取响应的trailer/header：使用 `grpc.Trailer(&metadata.MD)`和 `grpc.Header(&metadata.MD)`生成 `grpc.CallOption`，作为选项传入。
-* Streaming RPC获取trailer/header：在stream上调用`Trailer()`或者`Header()`方法。
+* Streaming RPC获取trailer/header：在stream上调用 `Trailer()`或者 `Header()`方法。
