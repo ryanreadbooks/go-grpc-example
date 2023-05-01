@@ -32,8 +32,6 @@ func runTestCellphoneServiceServer(t *testing.T) (*grpc.Server, net.Listener) {
 	serverImpl := service.NewCellphoneServiceServer()
 	pb.RegisterCellphoneServiceServer(server, serverImpl)
 
-	go server.Serve(listener)
-
 	return server, listener
 }
 

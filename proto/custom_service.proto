@@ -13,6 +13,21 @@ message CustomResponse {
   map<string, StringList> metadata = 2;
 }
 
+message SimpleRequest { string id = 1; }
+
+message SimpleResponse {
+  string id = 1;
+  string data = 2;  
+}
+
+// 这个服务用来进行一些基础功能的测试
 service CustomService {
+  // 测试metadata的使用
   rpc MetadataCarryTest(CustomRequest) returns (CustomResponse);
+  // 测试server-side unary interceptor
+  rpc CallWithUnaryInterceptor(SimpleRequest) returns (SimpleResponse);
+  rpc CallWithUnaryInterceptor2(SimpleRequest) returns (SimpleResponse);
+
+  // 测试server-side stream interceptor
+  rpc CallWithStreamInterceptor(stream SimpleRequest) returns (stream SimpleResponse);
 }

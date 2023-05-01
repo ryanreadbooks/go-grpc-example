@@ -25,6 +25,7 @@ func main() {
 	// 创建服务器
 	server := grpc.NewServer()
 	defer server.GracefulStop()
+	defer listener.Close()
 
 	if *cellphoneServiceOn {
 		serverImpl := service.NewCellphoneServiceServer()
