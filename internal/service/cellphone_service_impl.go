@@ -7,11 +7,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
 	"github.com/google/uuid"
+
 	"github.com/ryanreadbooks/go-grpc-example/pb"
 )
 
@@ -28,14 +29,20 @@ const (
 type cellphoneServiceServer struct {
 	// 必须嵌入这个由protoc生成的结构体
 	pb.UnimplementedCellphoneServiceServer
-	saver  CellphoneSaver
-	orders OrderSaver
+	saver     CellphoneSaver
+	orders    OrderSaver
+	coverPath string
 }
 
-func NewCellphoneServiceServer() pb.CellphoneServiceServer {
+func NewCellphoneServiceServer(coverPath ...string) pb.CellphoneServiceServer {
+	var coverFolder string = "../../image/server/" // 默认存放cover的路径
+	if len(coverPath) != 0 {
+		coverFolder = coverPath[0]
+	}
 	return &cellphoneServiceServer{
-		saver:  NewInMemoryCellphoneSaver(),
-		orders: NewInMemoryOrderSaver(),
+		saver:     NewInMemoryCellphoneSaver(),
+		orders:    NewInMemoryOrderSaver(),
+		coverPath: coverFolder,
 	}
 }
 
@@ -148,9 +155,10 @@ func (c *cellphoneServiceServer) UploadCellphoneCover(stream pb.CellphoneService
 		log.Printf("server side imgSize of %d is too large\n", imgSize)
 		return status.Errorf(codes.OutOfRange, fmt.Sprintf("provided cover image is larger than %d MB", maxCoverImageSizeMB))
 	}
-	imgFileName := fmt.Sprintf("../../image/server/%s%s", cellphoneId, imgType)
+	imgFileName := path.Join(c.coverPath, fmt.Sprintf("%s%s", cellphoneId, imgType))
 	imgFile, err := os.Create(imgFileName)
 	if err != nil {
+		log.Printf("can not create file when saving cover for %s: %s\n", cellphoneId, err)
 		return status.Errorf(codes.Internal, err.Error())
 	}
 	defer imgFile.Close()

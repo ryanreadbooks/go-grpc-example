@@ -175,6 +175,57 @@ stream interceptor适用于streaming RPC，但是stream interceptor仅会被调�
 
 <img src="file:///F:/Codes/go-grpc-example/image/grpc-interceptor-server-stream.svg" title="" alt="grpc-server-interceptor" width="441">
 
+> 如果想要数据流中每个数据都被拦截，则需要手动包装`grpc.ServerStream`，并且重新实现`SendMsg`和`RecvMsg`方法。
+> 
+> 原理：grpc在进行流式通信收发的时候，会调用grpc.ServerStream接口的SendMsg和RecvMsg方法。
+
+```go
+type myWrappedStream struct {
+	grpc.ServerStream
+}
+
+// 实现SendMsg方法
+func (s *myWrappedStream) SendMsg(data interface{}) error {
+	// TODO 就是在这里实现自定义流拦截器的发送逻辑
+	// 这里简单打印日志
+	// data是需要往流中发送的数据，我们可以在这里对这个准备发送的数据进行自定义操作
+	log.Printf("myWrappedStream send a message(%T): %v\n", data, data)
+	return s.ServerStream.SendMsg(data)
+}
+
+// 实现RecvMsg方法
+func (s *myWrappedStream) RecvMsg(data interface{}) error {
+	// TODO 就是在这里实现自定义流拦截器的接收逻辑
+	// 这里简单打印日志
+	err := s.ServerStream.RecvMsg(data) // 从流中接收数据
+	if err != nil {
+		return err
+	}
+	// 调用了RecvMsg从流中接收了数据之后，就可通过data访问到接收的数据内容
+	// data的类型是在proto文件中定义的流数据的类型
+	// 就可以按照自己的需求进一步处理
+	log.Printf("myWrappedStream receive a message(%T): %v\n", data, data)
+
+	return nil
+}
+
+func newMyServerStream(s grpc.ServerStream) grpc.ServerStream {
+	return &myWrappedStream{s}
+}
+
+func installServerStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{},
+		ss grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) error {
+        
+        // ss 的实际类型为 *grpc.serverStream
+		log.Printf("actual grpc.ServerStream type: %T\n", ss)
+		return handler(srv, newMyServerStream(ss))
+	}
+}
+```
+
 ### 用法：客户端使用拦截器
 
 在调用`grpc.Dial`函数的时候，使用`grpc.WithUnaryInterceptor`或`grpc.WithStreamInterceptor`指定拦截器。
